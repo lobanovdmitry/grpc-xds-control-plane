@@ -1,0 +1,18 @@
+{
+  "xds_servers": [
+    {
+      "server_uri": "localhost:8000",
+      "server_features": ["xds_v3"],
+      "channel_creds": [
+        {
+          "type": "insecure"
+        }
+      ]
+    }
+  ],
+  "node": {
+    "id": "test",
+    "cluster" : "cluster0"
+  },
+  "server_listener_resource_name_template": "seriescache"
+}
