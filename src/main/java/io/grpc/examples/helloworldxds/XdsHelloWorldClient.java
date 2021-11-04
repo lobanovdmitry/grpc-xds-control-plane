@@ -16,12 +16,7 @@
 
 package io.grpc.examples.helloworldxds;
 
-import io.grpc.Channel;
-import io.grpc.ChannelCredentials;
-import io.grpc.Grpc;
-import io.grpc.InsecureChannelCredentials;
-import io.grpc.ManagedChannel;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
 import io.grpc.examples.helloworld.GreeterGrpc;
 import io.grpc.examples.helloworld.HelloReply;
 import io.grpc.examples.helloworld.HelloRequest;
@@ -64,10 +59,13 @@ public class XdsHelloWorldClient {
    * greeting. The second argument is the target server. A {@code --xds-creds} flag is also accepted.
    */
   public static void main(String[] args) throws Exception {
+
+    System.setProperty("io.grpc.xds.bootstrap", "bootstrap.json");
+
     String user = "xds world";
     // The example defaults to the same behavior as the hello world example. To enable xDS, pass an
     // "xds:"-prefixed string as the target.
-    String target = "localhost:50051";
+    String target = "xds:///seriescache";
     ChannelCredentials credentials = InsecureChannelCredentials.create();
     if (args.length > 0) {
       if ("--help".equals(args[0])) {

@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <logger name="io.envoyproxy" level="DEBUG"/>
+    <logger name="io.envoyproxy" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

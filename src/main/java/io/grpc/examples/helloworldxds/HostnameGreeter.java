@@ -23,12 +23,15 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Random;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Greeter implementation which replies identifying itself with its hostname. */
 public final class HostnameGreeter extends GreeterGrpc.GreeterImplBase {
   private static final Logger logger = Logger.getLogger(HostnameGreeter.class.getName());
+
+  private static final String id = UUID.randomUUID().toString();
 
   private final String serverName;
 
@@ -42,7 +45,7 @@ public final class HostnameGreeter extends GreeterGrpc.GreeterImplBase {
   @Override
   public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
     HelloReply reply = HelloReply.newBuilder()
-        .setMessage("Hello " + req.getName() + ", from " + serverName)
+        .setMessage("Hello " + req.getName() + ", from " + serverName + "/" + id)
         .build();
     responseObserver.onNext(reply);
     responseObserver.onCompleted();
