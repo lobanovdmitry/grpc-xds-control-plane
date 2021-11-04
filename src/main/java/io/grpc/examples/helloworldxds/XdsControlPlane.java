@@ -7,7 +7,6 @@ import com.google.protobuf.UInt32Value;
 import io.envoyproxy.controlplane.cache.NodeGroup;
 import io.envoyproxy.controlplane.cache.v2.SimpleCache;
 import io.envoyproxy.controlplane.cache.v2.Snapshot;
-import io.envoyproxy.controlplane.server.V2DiscoveryServer;
 import io.envoyproxy.controlplane.server.V3DiscoveryServer;
 import io.envoyproxy.envoy.api.v2.Cluster;
 import io.envoyproxy.envoy.api.v2.Cluster.DiscoveryType;
@@ -28,6 +27,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import io.grpc.xds.shaded.io.envoyproxy.envoy.config.route.v3.NonForwardingAction;
 import io.grpc.xds.shaded.io.envoyproxy.envoy.service.load_stats.v3.LoadReportingServiceGrpc;
 import io.grpc.xds.shaded.io.envoyproxy.envoy.service.load_stats.v3.LoadStatsRequest;
 import io.grpc.xds.shaded.io.envoyproxy.envoy.service.load_stats.v3.LoadStatsResponse;
@@ -82,6 +82,95 @@ public class XdsControlPlane {
                                                                 .build()
                                                 )
                                                 .build()
+                                )
+                                .build()
+                )
+                .build();
+
+        var nonForwarding = io.grpc.xds.shaded.io.envoyproxy.envoy.config.route.v3.RouteConfiguration.newBuilder()
+                .setName("non_forwarding_route")
+                .addVirtualHosts(
+                        io.grpc.xds.shaded.io.envoyproxy.envoy.config.route.v3.VirtualHost.newBuilder()
+                                .setName("sc-virt-host")
+                                .addDomains("*")
+                                .addRoutes(
+                                        io.grpc.xds.shaded.io.envoyproxy.envoy.config.route.v3.Route.newBuilder()
+                                                .setName("seriescache")
+                                                .setNonForwardingAction(NonForwardingAction.newBuilder().build())
+                                                .setMatch(
+                                                        io.grpc.xds.shaded.io.envoyproxy.envoy.config.route.v3.RouteMatch.newBuilder()
+                                                                .setPrefix("/")
+                                                                .build()
+                                                )
+                                                .build()
+                                )
+                                .build()
+                )
+                .build();
+        Listener listener = Listener.newBuilder()
+                .setName("seriescache")
+                .setTrafficDirection(TrafficDirection.INBOUND)
+                .setApiListener(
+                        ApiListener.newBuilder()
+                                .setApiListener(Any.pack(
+                                        HttpConnectionManager.newBuilder()
+                                                .addHttpFilters(
+                                                        HttpFilter.newBuilder()
+                                                                .setName("f1")
+                                                                .setTypedConfig(Any.pack(
+                                                                                Router.newBuilder()
+                                                                                        .build()
+                                                                        )
+                                                                )
+                                                                .build()
+                                                )
+                                                .setRouteConfig(localRoute)
+                                                .build()
+                                ))
+                                .build()
+                )
+                .setAddress(
+                        Address.newBuilder()
+                                .setSocketAddress(
+                                        SocketAddress.newBuilder()
+                                                .setAddress("127.0.0.1")
+                                                .setPortValue(8000)
+                                                .build()
+                                )
+                                .build()
+                )
+                .addFilterChains(
+                        FilterChain.newBuilder()
+                                .addFilters(
+                                        Filter.newBuilder()
+                                                .setTypedConfig(
+                                                        Any.pack(
+                                                                HttpConnectionManager.newBuilder()
+                                                                        .setRouteConfig(
+                                                                                localRoute
+                                                                        )
+                                                                        .build()
+                                                        )
+                                                )
+                                )
+                                .build()
+                ).build();
+        Listener listener2 = Listener.newBuilder()
+                .setName("seriescache-server")
+                .setTrafficDirection(TrafficDirection.INBOUND)
+                .addFilterChains(
+                        FilterChain.newBuilder()
+                                .addFilters(
+                                        Filter.newBuilder()
+                                                .setTypedConfig(
+                                                        Any.pack(
+                                                                io.grpc.xds.shaded.io.envoyproxy.envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager.newBuilder()
+                                                                        .setRouteConfig(
+                                                                                nonForwarding
+                                                                        )
+                                                                        .build()
+                                                        )
+                                                )
                                 )
                                 .build()
                 )
@@ -151,61 +240,12 @@ public class XdsControlPlane {
                                         .build())
                                 .build()
                 ),
-                List.of(
-                        Listener.newBuilder()
-                                .setName("seriescache")
-                                .setTrafficDirection(TrafficDirection.INBOUND)
-                                .setApiListener(
-                                        ApiListener.newBuilder()
-                                                .setApiListener(Any.pack(
-                                                        HttpConnectionManager.newBuilder()
-                                                                .addHttpFilters(
-                                                                        HttpFilter.newBuilder()
-                                                                                .setName("f1")
-                                                                                .setTypedConfig(Any.pack(
-                                                                                                Router.newBuilder()
-                                                                                                        .build()
-                                                                                        )
-                                                                                )
-                                                                                .build()
-                                                                )
-                                                                .setRouteConfig(localRoute)
-                                                                .build()
-                                                ))
-                                                .build()
-                                )
-                                .setAddress(
-                                        Address.newBuilder()
-                                                .setSocketAddress(
-                                                        SocketAddress.newBuilder()
-                                                                .setAddress("127.0.0.1")
-                                                                .setPortValue(8000)
-                                                                .build()
-                                                )
-                                                .build()
-                                )
-                                .addFilterChains(
-                                        FilterChain.newBuilder()
-                                                .addFilters(
-                                                        Filter.newBuilder()
-                                                                .setTypedConfig(
-                                                                        Any.pack(
-                                                                                HttpConnectionManager.newBuilder()
-                                                                                        .setRouteConfig(
-                                                                                                localRoute
-                                                                                        )
-                                                                                        .build()
-                                                                        )
-                                                                )
-                                                )
-                                                .build()
-                                ).build()
-                ),
+                List.of(listener, listener2),
                 List.of(),
                 ImmutableList.of(),
                 "1");
 
-        cache.setSnapshot(GROUP,snapshot);
+        cache.setSnapshot(GROUP, snapshot);
 
         V3DiscoveryServer v3DiscoveryServer = new V3DiscoveryServer(cache);
 

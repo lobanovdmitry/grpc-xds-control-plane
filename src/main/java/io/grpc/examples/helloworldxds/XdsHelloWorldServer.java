@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class XdsHelloWorldServer {
 
   public static void main(String[] args) throws IOException, InterruptedException {
+    System.setProperty("io.grpc.xds.bootstrap", "bootstrap.json");
     int port = 50051;
     String hostname = null;
     ServerCredentials credentials = InsecureServerCredentials.create();
@@ -67,7 +68,7 @@ public class XdsHelloWorldServer {
     // checks
     int healthPort = port + 1;
     final HealthStatusManager health = new HealthStatusManager();
-    final Server server = Grpc.newServerBuilderForPort(port, credentials)
+    final Server server = XdsServerBuilder.forPort(port, credentials)
         .addService(new HostnameGreeter(hostname))
         .addService(ProtoReflectionService.newInstance()) // convenient for command line tools
         .addService(health.getHealthService()) // allow management servers to monitor health
@@ -76,6 +77,7 @@ public class XdsHelloWorldServer {
 
     System.out.println("Listening on port " + port);
 
+    health.setStatus("", ServingStatus.SERVING);
     server.awaitTermination();
   }
 }

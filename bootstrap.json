@@ -14,5 +14,5 @@
     "id": "test",
     "cluster" : "cluster0"
   },
-  "server_listener_resource_name_template": "seriescache"
+  "server_listener_resource_name_template": "seriescache-server"
 }
